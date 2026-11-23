@@ -55,6 +55,20 @@ def test_concept_fallback():
     assert edgar.annual_series(f, edgar.CONCEPTS["revenue"]) == {2020: 7}
 
 
+def test_concepts_merge_when_company_switches_tags():
+    # like Apple: old years under Revenues, new years under RevenueFromContract...
+    f = {"facts": {"us-gaap": {
+        "Revenues": {"units": {"USD": [fy(200, 2016), fy(210, 2017)]}},
+        "RevenueFromContractWithCustomerExcludingAssessedTax": {"units": {"USD": [fy(230, 2018), fy(260, 2019)]}},
+    }}}
+    assert edgar.annual_series(f, edgar.CONCEPTS["revenue"], years=3) == {2017: 210, 2018: 230, 2019: 260}
+
+
+def test_fcf_margin_uses_same_year():
+    fin = {"revenue": {2017: 100.0}, "operating_cash_flow": {2023: 50.0}, "capex": {2023: 10.0}}
+    assert factsheet.metrics(fin)["fcf_margin"] is None
+
+
 def test_recent_filings_links():
     subs = {"cik": "320193", "filings": {"recent": {
         "form": ["4", "10-K", "8-K"], "accessionNumber": ["a", "0000320193-24-000123", "x-y"],
