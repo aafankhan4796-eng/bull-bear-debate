@@ -31,7 +31,7 @@ Optional: put these in `.streamlit/secrets.toml` (see the example file):
 pytest -q
 ```
 
-16 offline tests cover EDGAR parsing (full-year 10-K values only, latest restatement wins, concept fallbacks), metrics, the fact sheet, citation checks, the verdict parser and both debate engines.
+18 offline tests cover EDGAR parsing (full-year 10-K values only, latest restatement wins, concept fallbacks), metrics, the fact sheet, citation checks, the verdict parser and both debate engines.
 
 ## Project layout
 
