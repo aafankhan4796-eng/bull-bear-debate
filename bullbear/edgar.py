@@ -45,28 +45,37 @@ def ticker_to_cik(ticker: str, tickers_json: Optional[dict] = None, user_agent: 
 
 
 def annual_series(facts: dict, concept_names: list[str], years: int = 5) -> dict[int, float]:
-    """{fiscal_year: value} from 10-K full-year figures, latest filing per year, newest `years` years."""
-    gaap = facts.get("facts", {}).get("us-gaap", {})
+    """{fiscal_year: value} from 10-K full-year figures, newest `years` years.
+
+    Companies switch tags over time (e.g. Apple moved from Revenues to
+    RevenueFromContractWithCustomer... in 2018), so every concept is read and merged:
+    for each year the first concept in the list that has it wins.
+    """
+    merged: dict[int, float] = {}
     for name in concept_names:
-        units = gaap.get(name, {}).get("units", {})
-        rows = units.get("USD") or next(iter(units.values()), [])
-        best: dict[int, tuple] = {}
-        for r in rows:
-            if r.get("form") not in ("10-K", "10-K/A", "20-F") or r.get("fp") != "FY":
-                continue
-            end = r.get("end", "")
-            start = r.get("start")
-            # flow items carry a start date; keep only ~12-month periods
-            if start and not _is_full_year(start, end):
-                continue
-            year = int(end[:4]) if end else r.get("fy")
-            key = (r.get("filed", ""), end)
-            if year not in best or key > best[year][0]:
-                best[year] = (key, float(r["val"]))
-        if best:
-            ys = sorted(best)[-years:]
-            return {y: best[y][1] for y in ys}
-    return {}
+        for y, v in _concept_series(facts, name).items():
+            merged.setdefault(y, v)
+    ys = sorted(merged)[-years:]
+    return {y: merged[y] for y in ys}
+
+
+def _concept_series(facts: dict, name: str) -> dict[int, float]:
+    units = facts.get("facts", {}).get("us-gaap", {}).get(name, {}).get("units", {})
+    rows = units.get("USD") or next(iter(units.values()), [])
+    best: dict[int, tuple] = {}
+    for r in rows:
+        if r.get("form") not in ("10-K", "10-K/A", "20-F") or r.get("fp") != "FY":
+            continue
+        end = r.get("end", "")
+        start = r.get("start")
+        # flow items carry a start date; keep only ~12-month periods
+        if start and not _is_full_year(start, end):
+            continue
+        year = int(end[:4]) if end else r.get("fy")
+        key = (r.get("filed", ""), end)
+        if year not in best or key > best[year][0]:
+            best[year] = (key, float(r["val"]))
+    return {y: v[1] for y, v in best.items()}
 
 
 def _is_full_year(start: str, end: str) -> bool:

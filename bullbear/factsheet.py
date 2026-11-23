@@ -50,7 +50,7 @@ def metrics(fin: dict) -> dict:
         "net_margin_first": margin[min(margin)] if margin else None,
         "op_margin": _latest(op_margin),
         "fcf_latest": _latest(fcf),
-        "fcf_margin": _ratio(_latest(fcf), _latest(rev)),
+        "fcf_margin": _latest({y: fcf[y] / rev[y] for y in fcf if rev.get(y)}),  # same-year ratio
         "net_debt": net_debt,
         "net_debt_to_ocf": _ratio(net_debt, _latest(ocf)),
         "roe": _ratio(_latest(ni), _latest(fin.get("equity", {}))),
