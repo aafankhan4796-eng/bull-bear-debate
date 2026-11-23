@@ -86,8 +86,14 @@ with st.spinner(f"Pulling SEC filings and market data for {ticker}..."):
     except ValueError as e:
         st.error(str(e))
         st.stop()
-    except Exception:
-        st.error("Couldn't reach SEC EDGAR just now. Try again in a minute.")
+    except Exception as e:
+        code = getattr(getattr(e, "response", None), "status_code", None)
+        if code == 403:
+            st.error("SEC EDGAR refused the request (403). SEC asks every app to identify itself: add "
+                     "SEC_USER_AGENT = \"Your Name your@email.com\" in the app's Streamlit secrets.")
+        else:
+            st.error(f"Couldn't reach SEC EDGAR just now ({type(e).__name__}{f' {code}' if code else ''}). "
+                     "Try again in a minute.")
         st.stop()
     snap, hist = get_market(ticker)
 
